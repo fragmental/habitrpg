@@ -27,6 +27,7 @@ var Challenge = require('../src/models/challenge').model;
 
 var app = require('../src/server');
 var shared = require('habitrpg-shared');
+var $i = shared.$i
 var payments = require('../src/controllers/payments');
 
 // ###### Helpers & Variables ######
@@ -63,17 +64,15 @@ describe('API', function () {
 
       _id = res.body._id;
       apiToken = res.body.apiToken;
-      User.findOne({_id: _id,
-                   apiToken: apiToken},
-                   function (err, _user) {
-                     expect(err).to.not.be.ok();
-                     user = _user;
-                     request
-                     .set('Accept', 'application/json')
-                     .set('X-API-User', _id)
-                     .set('X-API-Key', apiToken);
-                     cb(null, res.body);
-                   });
+      User.findOne({_id: _id, apiToken: apiToken}, function (err, _user) {
+        expect(err).to.not.be.ok();
+        user = _user;
+        request
+          .set('Accept', 'application/json')
+          .set('X-API-User', _id)
+          .set('X-API-Key', apiToken);
+        cb(null, res.body);
+      });
     });
   };
 
@@ -134,17 +133,17 @@ describe('API', function () {
           expect(_.size(res.body.todos)).to.be(6);
           request.post(baseURL + "/user/batch-update?_v=998")
           .send([
-            {op:'score',params:{direction:'up', id:res.body.todos[0].id}},
-            {op:'score',params:{direction:'up', id:res.body.todos[1].id}},
-            {op:'score',params:{direction:'up', id:res.body.todos[2].id}}
+            {op:'score',params:{direction:'up', id:$i(res.body.todos,0).id}},
+            {op:'score',params:{direction:'up', id:$i(res.body.todos,1).id}},
+            {op:'score',params:{direction:'up', id:$i(res.body.todos,2).id}}
           ])
           .end(function(res){
             expectCode(res, 200);
             expect(_.size(res.body.todos)).to.be(6);
             request.post(baseURL + "/user/batch-update?_v=997")
             .send([
-              {op:'updateTask',params:{id:res.body.todos[0].id}, body:{dateCompleted:moment().subtract('days',4)}},
-              {op:'updateTask',params:{id:res.body.todos[1].id}, body:{dateCompleted:moment().subtract('days',4)}}
+              {op:'updateTask',params:{id:$i(res.body.todos,0).id}, body:{dateCompleted:moment().subtract('days',4)}},
+              {op:'updateTask',params:{id:$i(res.body.todos,1).id}, body:{dateCompleted:moment().subtract('days',4)}}
             ])
             .end(function(res){
               expect(_.size(res.body.todos)).to.be(4);
@@ -243,8 +242,8 @@ describe('API', function () {
 
         it('Complete To-Dos', function (done) {
           var u = user;
-          request.post(baseURL + "/user/tasks/" + u.todos[0].id + "/up").end(function (res) {
-            request.post(baseURL + "/user/tasks/" + u.todos[1].id + "/up").end(function (res) {
+          request.post(baseURL + "/user/tasks/" +   $i(u.todos,0).id + "/up").end(function (res) {
+            request.post(baseURL + "/user/tasks/" + $i(u.todos,1).id + "/up").end(function (res) {
               request.post(baseURL + "/user/tasks/").send({type:'todo'}).end(function (res) {
                 request.post(baseURL + "/user/tasks/clear-completed").end(function (res) {
                   expect(_.size(res.body)).to.be(3);

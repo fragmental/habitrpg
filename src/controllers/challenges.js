@@ -248,18 +248,23 @@ function closeChal(cid, broken, cb) {
       removed = _removed;
       var pull = {'$pull':{}}; pull['$pull'][_removed._id] = 1;
       Group.findByIdAndUpdate(_removed.group, pull);
-      User.find({_id:{$in: removed.members}}, cb2);
+
+      User.findAndModify({
+        query:{_id:{$in: removed.members}},
+        fields: {tags:1}, //FIXME - update tasks inline as well
+        update:
+          _.reduce(removed.tasks,function(m,task,id){
+            _.each(broken,function(v,k){
+              m['$set'][task.type+'s.'+id+'.challenge.'+k] = v;
+            });
+          }, {'$set':{}})
+      }, cb2)
     },
     function(users, cb2) {
       var parallel = [];
       _.each(users, function(user){
         var tag = _.find(user.tags, {id:cid});
         if (tag) tag.challenge = undefined;
-        _.each(user.tasks, function(task){
-          if (task.challenge && task.challenge.id == removed._id) {
-            _.merge(task.challenge, broken);
-          }
-        })
         parallel.push(function(cb3){
           user.save(cb3);
         })
